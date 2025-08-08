@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Platformer",
+  "description": "A procedurally generated platformer game where levels are created on-the-fly by the Gemini API. Features an animated SVG character and classic platformer mechanics.",
+  "requestFramePermissions": []
+}

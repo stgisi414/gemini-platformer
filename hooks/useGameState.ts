@@ -113,7 +113,7 @@ export const useGameState = (keysPressed: { [key: string]: boolean }) => {
           // Regular Jump
           newVel.y = -PLAYER_JUMP_FORCE;
           newIsJumping = true;
-        } else if (!newHasDoubleJumped) {
+        } else if (!newHasDoubleJumped && newIsJumping) {
           // Double Jump
           newVel.y = -PLAYER_JUMP_FORCE * 1.5;
           newHasDoubleJumped = true;

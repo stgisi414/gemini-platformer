@@ -115,10 +115,12 @@ const App: React.FC = () => {
 
       newVel.y += GRAVITY * dtFactor;
 
-      if ((keysPressed['w'] || keysPressed['ArrowUp'] || keysPressed[' ']) && (!prev.isJumping || !prev.hasDoubleJumped)) {
-        newVel.y = -PLAYER_JUMP_FORCE * (prev.isJumping ? 1.5 : 1);
-        newIsJumping = true;
-        if (prev.isJumping) {
+      if (keysPressed['w'] || keysPressed['ArrowUp'] || keysPressed[' ']) {
+        if (prev.isGrounded) {
+          newVel.y = -PLAYER_JUMP_FORCE;
+          newIsJumping = true;
+        } else if (!prev.hasDoubleJumped && prev.isJumping) {
+          newVel.y = -PLAYER_JUMP_FORCE * 1.5;
           newHasDoubleJumped = true;
         }
       }

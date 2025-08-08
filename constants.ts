@@ -18,6 +18,9 @@ export const ASSET_URLS = {
     sand: '/tileset/PNG%20Sand/slice01_01.png',
     castle: '/tileset/PNG%20Castle/slice01_01.png',
 
+    // Player
+    player: '/tileset/character.png',
+
     // Collectibles
     coin: '/tileset/coinGold.png',
     gem: '/tileset/gemRed.png',

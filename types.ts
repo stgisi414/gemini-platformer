@@ -16,6 +16,7 @@ export interface PlayerState {
   isGrounded: boolean;
   animationState: 'idle' | 'run' | 'jump';
   hasDoubleJumped: boolean;
+  direction: 'left' | 'right';
 }
 
 export enum GameObjectType {
@@ -24,6 +25,7 @@ export enum GameObjectType {
   Enemy,
   Spike,
   Gem,
+  Laser,
 }
 
 export interface BaseGameObject {
@@ -63,7 +65,12 @@ export interface Spike extends BaseGameObject {
     type: GameObjectType.Spike;
 }
 
-export type GameObject = Platform | Coin | Enemy | Spike | Gem;
+export interface Laser extends BaseGameObject {
+    type: GameObjectType.Laser;
+    velocity: Vector2D;
+}
+
+export type GameObject = Platform | Coin | Enemy | Spike | Gem | Laser;
 
 export interface LevelChunk {
   startX: number;

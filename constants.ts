@@ -11,12 +11,12 @@ export const LEVEL_CHUNK_WIDTH_TILES = 25;
 // CORRECTED FILE PATHS
 export const ASSET_URLS = {
     // Platform Tiles
-    dirt: '/tileset/dirt.png',
-    grass: '/tileset/grass.png',
-    stone: '/tileset/stone.png',
-    snow: '/tileset/snow.png',
-    sand: '/tileset/sand.png',
-    castle: '/tileset/castle.png',
+    dirt: '/tileset/PNG%20Dirt/slice01_01.png',
+    grass: '/tileset/PNG%20Grass/slice01_01.png',
+    stone: '/tileset/PNG%20Castle/slice01_01.png',
+    snow: '/tileset/PNG%20Snow/slice01_01.png',
+    sand: '/tileset/PNG%20Sand/slice01_01.png',
+    castle: '/tileset/PNG%20Castle/slice01_01.png',
 
     // Collectibles
     coin: '/tileset/coinGold.png',

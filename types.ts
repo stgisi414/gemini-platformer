@@ -1,4 +1,3 @@
-
 export enum GameState {
   MainMenu,
   Playing,
@@ -54,6 +53,9 @@ export type EnemyType = 'slime' | 'fly' | 'ladybug';
 export interface Enemy extends BaseGameObject {
   type: GameObjectType.Enemy;
   enemyType: EnemyType;
+  // New properties for movement
+  velocity: Vector2D;
+  initialPos: Vector2D;
 }
 
 export interface Spike extends BaseGameObject {

@@ -15,6 +15,7 @@ export interface PlayerState {
   isJumping: boolean;
   isGrounded: boolean;
   animationState: 'idle' | 'run' | 'jump';
+  hasDoubleJumped: boolean;
 }
 
 export enum GameObjectType {

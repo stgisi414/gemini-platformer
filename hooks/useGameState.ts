@@ -23,6 +23,7 @@ function getInitialPlayerState(): PlayerState {
     isJumping: true,
     isGrounded: false,
     animationState: 'jump',
+    hasDoubleJumped: false,
   };
 }
 
@@ -35,6 +36,7 @@ export const useGameState = (keysPressed: { [key: string]: boolean }) => {
   const [error, setError] = useState<string | null>(null);
 
   const allGameObjects = useRef<GameObject[]>([]);
+  const jumpKeyHeld = useRef(false); // Add this ref
 
   useEffect(() => {
     allGameObjects.current = levelChunks.flatMap(chunk =>
@@ -84,12 +86,15 @@ export const useGameState = (keysPressed: { [key: string]: boolean }) => {
     const dtFactor = deltaTime / (1000 / 60);
     if (isNaN(dtFactor) || dtFactor <= 0 || dtFactor > 5) return;
 
+    const isJumpJustPressed = (keysPressed['w'] || keysPressed['ArrowUp'] || keysPressed[' ']) && !jumpKeyHeld.current;
+
     setPlayerState(prev => {
       let newVel = { ...prev.velocity };
       let newPos = { ...prev.position };
       let newIsJumping = prev.isJumping;
       let newIsGrounded = false;
       let newAnimationState: PlayerState['animationState'] = 'idle';
+      let newHasDoubleJumped = prev.hasDoubleJumped;
 
       newVel.x = 0;
       if (keysPressed['a'] || keysPressed['ArrowLeft']) {
@@ -103,9 +108,16 @@ export const useGameState = (keysPressed: { [key: string]: boolean }) => {
 
       newVel.y += GRAVITY * dtFactor;
 
-      if ((keysPressed['w'] || keysPressed['ArrowUp'] || keysPressed[' ']) && !prev.isJumping && prev.isGrounded) {
-        newVel.y = -PLAYER_JUMP_FORCE;
-        newIsJumping = true;
+      if (isJumpJustPressed) {
+        if (prev.isGrounded) {
+          // Regular Jump
+          newVel.y = -PLAYER_JUMP_FORCE;
+          newIsJumping = true;
+        } else if (!newHasDoubleJumped) {
+          // Double Jump
+          newVel.y = -PLAYER_JUMP_FORCE * 1.5;
+          newHasDoubleJumped = true;
+        }
       }
 
       if (!prev.isGrounded) {
@@ -129,6 +141,7 @@ export const useGameState = (keysPressed: { [key: string]: boolean }) => {
             newVel.y = 0;
             newIsGrounded = true;
             newIsJumping = false;
+            newHasDoubleJumped = false;
             if (newAnimationState === 'jump') newAnimationState = 'idle';
           }
         }
@@ -180,7 +193,7 @@ export const useGameState = (keysPressed: { [key: string]: boolean }) => {
         );
       }
       
-      return { position: newPos, velocity: newVel, isJumping: newIsJumping, isGrounded: newIsGrounded, animationState: newAnimationState };
+      return { position: newPos, velocity: newVel, isJumping: newIsJumping, isGrounded: newIsGrounded, animationState: newAnimationState, hasDoubleJumped: newHasDoubleJumped };
     });
   }, [keysPressed]);
 

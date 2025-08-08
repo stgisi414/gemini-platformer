@@ -38,6 +38,7 @@ const App: React.FC = () => {
       isJumping: true,
       isGrounded: false,
       animationState: 'jump',
+      hasDoubleJumped: false,
     };
   }
   
@@ -105,6 +106,7 @@ const App: React.FC = () => {
       let newIsJumping = prev.isJumping;
       let newIsGrounded = false;
       let newAnimationState: PlayerState['animationState'] = 'idle';
+      let newHasDoubleJumped = prev.hasDoubleJumped;
 
       newVel.x = 0;
       if (keysPressed['a'] || keysPressed['ArrowLeft']) newVel.x = -PLAYER_SPEED;
@@ -113,9 +115,12 @@ const App: React.FC = () => {
 
       newVel.y += GRAVITY * dtFactor;
 
-      if ((keysPressed['w'] || keysPressed['ArrowUp'] || keysPressed[' ']) && !prev.isJumping && prev.isGrounded) {
-        newVel.y = -PLAYER_JUMP_FORCE;
+      if ((keysPressed['w'] || keysPressed['ArrowUp'] || keysPressed[' ']) && (!prev.isJumping || !prev.hasDoubleJumped)) {
+        newVel.y = -PLAYER_JUMP_FORCE * (prev.isJumping ? 1.5 : 1);
         newIsJumping = true;
+        if (prev.isJumping) {
+          newHasDoubleJumped = true;
+        }
       }
 
       if (!prev.isGrounded) newAnimationState = 'jump';
@@ -132,6 +137,7 @@ const App: React.FC = () => {
             newVel.y = 0;
             newIsGrounded = true;
             newIsJumping = false;
+            newHasDoubleJumped = false; // Reset double jump on landing
             if (newAnimationState === 'jump') newAnimationState = 'idle';
         }
       }
@@ -171,7 +177,7 @@ const App: React.FC = () => {
         setLevelChunks(prevChunks => prevChunks.map(chunk => ({ ...chunk, coins: chunk.coins.filter(c => !idsToRemove.has(c.id)), gems: chunk.gems.filter(g => !idsToRemove.has(g.id)) })));
       }
       
-      return { position: newPos, velocity: newVel, isJumping: newIsJumping, isGrounded: newIsGrounded, animationState: newAnimationState };
+      return { position: newPos, velocity: newVel, isJumping: newIsJumping, isGrounded: newIsGrounded, animationState: newAnimationState, hasDoubleJumped: newHasDoubleJumped };
     });
 
     const maxPlayerX = levelChunks.length > 0 ? levelChunks[levelChunks.length - 1].startX + LEVEL_CHUNK_WIDTH_TILES * TILE_SIZE : 0;

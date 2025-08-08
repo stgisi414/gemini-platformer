@@ -8,24 +8,25 @@ export const PLAYER_HEIGHT = TILE_SIZE * 0.95;
 
 export const LEVEL_CHUNK_WIDTH_TILES = 25;
 
+// CORRECTED FILE PATHS
 export const ASSET_URLS = {
     // Platform Tiles
-    dirt: '/tileset/PNG Dirt/slice01_01.png',
-    grass: '/tileset/PNG Grass/slice01_01.png',
-    stone: '/tileset/PNG Castle/slice01_01.png',
-    snow: '/tileset/PNG Snow/slice01_01.png',
-    sand: '/tileset/PNG Sand/slice01_01.png',
-    castle: '/tileset/PNG Castle/slice01_01.png',
+    dirt: '/tileset/dirt.png',
+    grass: '/tileset/grass.png',
+    stone: '/tileset/stone.png',
+    snow: '/tileset/snow.png',
+    sand: '/tileset/sand.png',
+    castle: '/tileset/castle.png',
 
-    // Collectibles - NOTE: These files are missing from your project.
+    // Collectibles
     coin: '/tileset/coinGold.png',
     gem: '/tileset/gemRed.png',
 
-    // Enemies - NOTE: These files are missing from your project.
+    // Enemies
     enemySlime: '/tileset/slimeWalk1.png',
     enemyFly: '/tileset/flyFly1.png',
     enemyLadybug: '/tileset/ladybug.png',
 
-    // Hazards - NOTE: This file is missing from your project.
+    // Hazards
     spikes: '/tileset/spikes.png',
 };

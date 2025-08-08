@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 export const useGameLoop = (callback: (deltaTime: number) => void, isRunning: boolean) => {
   const requestRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+  // Use a ref to hold the callback. This prevents stale closures.
   const callbackRef = useRef(callback);
 
   useEffect(() => {
@@ -13,6 +14,7 @@ export const useGameLoop = (callback: (deltaTime: number) => void, isRunning: bo
     const animate = (time: number) => {
       if (lastTimeRef.current != null) {
         const deltaTime = time - lastTimeRef.current;
+        // Call the latest version of the callback.
         callbackRef.current(deltaTime);
       }
       lastTimeRef.current = time;
@@ -20,7 +22,7 @@ export const useGameLoop = (callback: (deltaTime: number) => void, isRunning: bo
     };
 
     if (isRunning) {
-      lastTimeRef.current = null;
+      lastTimeRef.current = null; // Reset time on start
       requestRef.current = requestAnimationFrame(animate);
     }
 

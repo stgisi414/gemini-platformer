@@ -30,14 +30,16 @@ const Tile: React.FC<TileProps> = ({ object }) => {
     top: object.y,
     width: isPlatform ? (object as Platform).width : TILE_SIZE,
     height: TILE_SIZE,
-    imageRendering: 'pixelated', // Keep images crisp
+    imageRendering: 'pixelated',
+    backgroundSize: 'contain',
+    backgroundRepeat: 'no-repeat',
   };
 
   switch (object.type) {
     case GameObjectType.Platform:
       const platform = object as Platform;
       style.backgroundImage = `url(${platformUrlMap[platform.tileType]})`;
-      style.backgroundRepeat = 'repeat-x'; // Repeat only for platforms
+      style.backgroundRepeat = 'repeat-x';
       style.backgroundSize = `${TILE_SIZE}px ${TILE_SIZE}px`;
       break;
     case GameObjectType.Coin:

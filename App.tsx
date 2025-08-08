@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { GameState, PlayerState, LevelChunk, GameObject, Enemy, Coin, Spike, Gem } from './types';
 import { useGameLoop } from './hooks/useGameLoop';
 import { useKeyboardInput } from './hooks/useKeyboardInput';
@@ -9,8 +8,8 @@ import Tile from './components/Tile';
 import GameUI from './components/GameUI';
 import StartScreen from './components/StartScreen';
 import GameOverScreen from './components/GameOverScreen';
-import { 
-  GRAVITY, PLAYER_JUMP_FORCE, PLAYER_SPEED, TILE_SIZE, 
+import {
+  GRAVITY, PLAYER_JUMP_FORCE, PLAYER_SPEED, TILE_SIZE,
   PLAYER_WIDTH, PLAYER_HEIGHT, LEVEL_CHUNK_WIDTH_TILES
 } from './constants';
 
@@ -34,8 +33,9 @@ const App: React.FC = () => {
       animationState: 'idle',
     };
   }
-  
+
   const resetGame = useCallback(() => {
+    if (isLoading) return; // Prevent reset while already loading
     setPlayerState(getInitialPlayerState());
     setLevelChunks([]);
     setScore(0);
@@ -59,16 +59,23 @@ const App: React.FC = () => {
       .finally(() => {
         setIsLoading(false);
       });
-  }, []);
+  }, [isLoading]);
 
   const gameUpdate = useCallback((deltaTime: number) => {
     if (gameState !== GameState.Playing) return;
 
     const dtFactor = deltaTime / (1000 / 60);
+    if (isNaN(dtFactor) || dtFactor <= 0 || dtFactor > 5) return;
+    
+    // Define viewport for culling
+    const viewportLeft = playerState.position.x - window.innerWidth / 2;
+    const viewportRight = playerState.position.x + window.innerWidth / 2;
 
-    if (isNaN(dtFactor) || dtFactor <= 0 || dtFactor > 5) {
-      return;
-    }
+    // Filter objects to only those near the player
+    const nearbyObjects = useMemo(() => levelChunks.flatMap(chunk => 
+      [...chunk.platforms, ...chunk.coins, ...chunk.gems, ...chunk.enemies, ...chunk.spikes]
+      .filter(obj => obj.x + (obj.type === GameObjectType.Platform ? (obj as Platform).width : TILE_SIZE) > viewportLeft && obj.x < viewportRight)
+    ), [levelChunks, viewportLeft, viewportRight]);
 
     setPlayerState(prev => {
       let newVel = { ...prev.velocity };
@@ -87,7 +94,7 @@ const App: React.FC = () => {
         newVel.x = PLAYER_SPEED * dtFactor;
         newAnimationState = 'run';
       }
-      
+
       // Apply gravity
       newVel.y += GRAVITY * dtFactor;
 
@@ -96,20 +103,18 @@ const App: React.FC = () => {
         newVel.y = -PLAYER_JUMP_FORCE;
         newIsJumping = true;
       }
-      
+
       if (!prev.isGrounded) {
-          newAnimationState = 'jump';
+        newAnimationState = 'jump';
       }
 
       let proposedX = newPos.x + newVel.x;
       let proposedY = newPos.y + newVel.y;
-      
+
       const playerRect = { x: proposedX, y: proposedY, width: PLAYER_WIDTH, height: PLAYER_HEIGHT };
       
-      const allPlatforms = levelChunks.flatMap(chunk => chunk.platforms);
-
-      // Vertical collision
-      for (const platform of allPlatforms) {
+      // Vertical collision with nearby platforms
+      for (const platform of nearbyObjects.filter(obj => obj.type === GameObjectType.Platform) as Platform[]) {
         const platformRect = { x: platform.x, y: platform.y, width: platform.width, height: TILE_SIZE };
         
         if (playerRect.x < platformRect.x + platformRect.width &&
@@ -126,11 +131,11 @@ const App: React.FC = () => {
             }
         }
       }
-      
+
       playerRect.y = proposedY;
 
-      // Horizontal collision
-      for (const platform of allPlatforms) {
+      // Horizontal collision with nearby platforms
+      for (const platform of nearbyObjects.filter(obj => obj.type === GameObjectType.Platform) as Platform[]) {
         const platformRect = { x: platform.x, y: platform.y, width: platform.width, height: TILE_SIZE };
         if (
             proposedX + PLAYER_WIDTH > platformRect.x &&
@@ -153,71 +158,39 @@ const App: React.FC = () => {
       let collectedCoinIds: number[] = [];
       let collectedGemIds: number[] = [];
 
-      levelChunks.forEach(chunk => {
-        chunk.coins.forEach(coin => {
-          const coinRect = { x: coin.x, y: coin.y, width: TILE_SIZE, height: TILE_SIZE };
-          if (
-            newPos.x < coinRect.x + coinRect.width &&
-            newPos.x + PLAYER_WIDTH > coinRect.x &&
-            newPos.y < coinRect.y + coinRect.height &&
-            newPos.y + PLAYER_HEIGHT > coinRect.y
-          ) {
-            collectedCoinIds.push(coin.id);
+      // Collision with other nearby objects
+      nearbyObjects.forEach(obj => {
+        const objRect = { x: obj.x, y: obj.y, width: TILE_SIZE, height: TILE_SIZE };
+        if (
+          newPos.x < objRect.x + objRect.width &&
+          newPos.x + PLAYER_WIDTH > objRect.x &&
+          newPos.y < objRect.y + objRect.height &&
+          newPos.y + PLAYER_HEIGHT > objRect.y
+        ) {
+          if (obj.type === GameObjectType.Coin) {
+            collectedCoinIds.push(obj.id);
+          } else if (obj.type === GameObjectType.Gem) {
+            collectedGemIds.push(obj.id);
+          } else if (obj.type === GameObjectType.Enemy || obj.type === GameObjectType.Spike) {
+            setGameState(GameState.GameOver);
           }
-        });
-        chunk.gems.forEach(gem => {
-          const gemRect = { x: gem.x, y: gem.y, width: TILE_SIZE, height: TILE_SIZE };
-          if (
-            newPos.x < gemRect.x + gemRect.width &&
-            newPos.x + PLAYER_WIDTH > gemRect.x &&
-            newPos.y < gemRect.y + gemRect.height &&
-            newPos.y + PLAYER_HEIGHT > gemRect.y
-          ) {
-            collectedGemIds.push(gem.id);
-          }
-        });
-        chunk.enemies.forEach(enemy => {
-           const enemyRect = { x: enemy.x, y: enemy.y, width: TILE_SIZE, height: TILE_SIZE };
-            if (
-                newPos.x < enemyRect.x + enemyRect.width &&
-                newPos.x + PLAYER_WIDTH > enemyRect.x &&
-                newPos.y < enemyRect.y + enemyRect.height &&
-                newPos.y + PLAYER_HEIGHT > enemyRect.y
-            ) {
-                setGameState(GameState.GameOver);
-            }
-        });
-        chunk.spikes.forEach(spike => {
-           const spikeRect = { x: spike.x, y: spike.y, width: TILE_SIZE, height: TILE_SIZE };
-            if (
-                newPos.x < spikeRect.x + spikeRect.width &&
-                newPos.x + PLAYER_WIDTH > spikeRect.x &&
-                newPos.y < spikeRect.y + spikeRect.height &&
-                newPos.y + PLAYER_HEIGHT > spikeRect.y
-            ) {
-                setGameState(GameState.GameOver);
-            }
-        });
+        }
       });
       
       if(collectedCoinIds.length > 0) {
         setScore(s => s + collectedCoinIds.length * 10);
-        setLevelChunks(prevChunks => {
-            return prevChunks.map(chunk => ({
-                ...chunk,
-                coins: chunk.coins.filter(c => !collectedCoinIds.includes(c.id))
-            }));
-        });
+        setLevelChunks(prevChunks => prevChunks.map(chunk => ({
+            ...chunk,
+            coins: chunk.coins.filter(c => !collectedCoinIds.includes(c.id))
+        })));
       }
 
       if(collectedGemIds.length > 0) {
-        setScore(s => s + collectedGemIds.length * 50); // Gems are worth more
-        setLevelChunks(prevChunks => {
-            return prevChunks.map(chunk => ({
-                ...chunk,
-                gems: chunk.gems.filter(g => !collectedGemIds.includes(g.id))
-            }));
-        });
+        setScore(s => s + collectedGemIds.length * 50);
+        setLevelChunks(prevChunks => prevChunks.map(chunk => ({
+            ...chunk,
+            gems: chunk.gems.filter(g => !collectedGemIds.includes(g.id))
+        })));
       }
 
       if (newPos.y > TILE_SIZE * 20) {
@@ -234,10 +207,10 @@ const App: React.FC = () => {
       };
     });
 
-    setCameraX(prev => playerState.position.x - window.innerWidth / 2.5);
+    setCameraX(playerState.position.x - window.innerWidth / 2.5);
     
     const maxPlayerX = levelChunks.length > 0
-        ? Math.max(...levelChunks.map(c => c.startX + LEVEL_CHUNK_WIDTH_TILES * TILE_SIZE))
+        ? levelChunks[levelChunks.length - 1].startX + LEVEL_CHUNK_WIDTH_TILES * TILE_SIZE
         : 0;
         
     if (playerState.position.x > maxPlayerX - window.innerWidth && !isLoading && !error) {
@@ -257,26 +230,27 @@ const App: React.FC = () => {
                 setIsLoading(false);
             });
     }
-
   }, [gameState, keysPressed, playerState.position.x, levelChunks, isLoading, error]);
 
   useGameLoop(gameUpdate, gameState === GameState.Playing);
 
   const renderGameWorld = () => {
-    const allGameObjects: GameObject[] = levelChunks.flatMap(chunk => [
-        ...chunk.platforms,
-        ...chunk.coins,
-        ...chunk.gems,
-        ...chunk.enemies,
-        ...chunk.spikes,
-    ]);
+    // Culling for rendering
+    const viewportLeft = cameraX - TILE_SIZE;
+    const viewportRight = cameraX + window.innerWidth + TILE_SIZE;
+
+    const visibleObjects = useMemo(() => levelChunks.flatMap(chunk => 
+        [...chunk.platforms, ...chunk.coins, ...chunk.gems, ...chunk.enemies, ...chunk.spikes]
+    ).filter(obj => 
+        obj.x + (obj.type === GameObjectType.Platform ? (obj as Platform).width : TILE_SIZE) > viewportLeft && obj.x < viewportRight
+    ), [levelChunks, viewportLeft, viewportRight]);
 
     return (
       <div
-        className="relative w-full h-full transition-transform duration-100 ease-linear"
+        className="relative w-full h-full"
         style={{ transform: `translateX(-${cameraX}px)` }}
       >
-        {allGameObjects.map(obj => (
+        {visibleObjects.map(obj => (
           <Tile key={obj.id} object={obj} />
         ))}
         <Player state={playerState} />
@@ -290,7 +264,7 @@ const App: React.FC = () => {
   
   return (
     <main className={mainContainerClasses}>
-      {gameState === GameState.MainMenu && <StartScreen onStart={resetGame} error={error} />}
+      {gameState === GameState.MainMenu && <StartScreen onStart={resetGame} error={error} isLoading={isLoading} />}
       {gameState === GameState.Playing && (
         <>
           <GameUI score={score} />
@@ -299,7 +273,7 @@ const App: React.FC = () => {
           {error && <div className="absolute top-16 left-1/2 -translate-x-1/2 text-white text-md bg-red-800 bg-opacity-70 p-2 rounded-lg z-20 shadow-lg">{error}</div>}
         </>
       )}
-      {gameState === GameState.GameOver && <GameOverScreen score={score} onRestart={resetGame} />}
+      {gameState === GameState.GameOver && <GameOverScreen score={score} onRestart={resetGame} isLoading={isLoading} />}
     </main>
   );
 };
